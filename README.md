@@ -2,8 +2,6 @@
 
 ## Overview
 
-Foi solicitado o desenvolvimento de uma arquitetura com Apache Kafka, para realizar a captura de mudanças eventuais em um servidor SQL Server.
-
 * ## Kafka
 
 O Kafka é usado para criar pipelines de dados em tempo real e aplicativos de streaming. É escalável horizontalmente, tolerante a falhas, extremamente rápido e é executado em produção em milhares de empresas.
