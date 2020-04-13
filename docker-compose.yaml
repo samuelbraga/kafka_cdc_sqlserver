@@ -1,0 +1,82 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: zookeeper:3.5.7
+    ports:
+      - '2181:2181'
+
+  schema_registry:
+    image: confluentinc/cp-schema-registry:5.4.1
+    links:
+      - kafka:kafaka
+    ports:
+      - 8081:8081
+    environment: 
+      - SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_HOST_NAME=localhost
+      - SCHEMA_REGISTRY_LISTENERS=http://0.0.0.0:8081
+
+  kafka:
+    image: wurstmeister/kafka:2.12-2.4.1
+    ports:
+      - '9092:9092'
+      - '9093:9093'
+      - '9094:9094'
+    links:
+      - zookeeper:zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: source:1:1,sourceOffset:1:1:compact,sourceStatuses:1:1,sink:1:1,sinkOffset:1:1:compact,sinkStatuses:1:1
+      KAFKA_LISTENERS: INSIDE://:9092,PLAINTEXT://:9093,OUTSIDE://:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+  source_connector:
+    image: debezium/connect:1.0
+    ports:
+      - '8083:8083'
+    links:
+      - zookeeper:zookeeper
+      - kafka:kafka
+      - schema_registry:schema_registry
+    environment: 
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: source
+      OFFSET_STORAGE_TOPIC: sourceOffset
+      STATUS_STORAGE_TOPIC: sourceStatuses
+      KEY_CONVERTER: io.confluent.connect.avro.AvroConverter
+      VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema_registry:8081
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema_registry:8081
+
+  sink_connector:
+    build: ./kafka-connect-sqlserver
+    links:
+      - kafka:kafka
+      - schema_registry:schema_registry
+    ports:
+      - 28083:28083
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      REST_PORT: 28083
+      GROUP_ID: 2
+      CONFIG_STORAGE_TOPIC: sink
+      OFFSET_STORAGE_TOPIC: sinkOffset
+      STATUS_STORAGE_TOPIC: sinkStatuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      STATUS_STORAGE_REPLICATION_FACTOR: 3
+      KEY_CONVERTER: io.confluent.connect.avro.AvroConverter
+      VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema_registry:8081
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema_registry:8081
+      KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema_registry:8081
+      VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema_registry:8081
+      INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_PLUGIN_PATH: /kafka/connect/
