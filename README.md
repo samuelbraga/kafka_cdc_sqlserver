@@ -59,7 +59,7 @@ Para o desenvolvimento das blue prints, será necessário o armazenamento das li
 
 * ## Porque não utilizamos a imagem confluentinc/cp-kafka-connect
 
-A imagem docker `confluentinc/cp-kafka-connect` já é utlizada para alguns processos de extração de dados para nosso DataLake. Porém, para esse cenário de extração e replicação para sql server, tivemos muitas dificuldades no setup dessa imagem. Ademais, com o setup dessa imagem não conseguimos realizar a operação de deleção, o erro era ocaicionado no momento de transforção dos dados para a realização do sink. Utilizamos os seguintes transformadores: `Flatten e ValueToKey`, ambos apresentaram erros na operação de deleção.
+Para esse cenário de extração e replicação para sql server, tivemos muitas dificuldades no setup dessa imagem. Ademais, com o setup dessa imagem não conseguimos realizar a operação de deleção, o erro era ocaicionado no momento de transforção dos dados para a realização do sink. Utilizamos os seguintes transformadores: `Flatten e ValueToKey`, ambos apresentaram erros na operação de deleção.
 
 Dessa forma, procurarmos alternativas para a utilização do transformador nativo do Debezium, então definimos como transformador o `unwrap` utilizando a classe `io.debezium.transforms.ExtractNewRecordState`.
 
@@ -265,5 +265,3 @@ Após feito o sincronismo das alterações temos as tabelas nos seguintes format
 * A replicação pode demorar até 6 minutos
 
 ![Source](images/sourceDB.png) ![Sink](images/sinkDB.png)
-
-## Dessa forma, entendemos que a replicação da deleção de linhas não funciou
